@@ -10,6 +10,18 @@ public class UserDbSchema {
         //Set name of table
         public static final String NAME = "user";
 
+        public static final String SQL_CREATE_ENTRIES =
+                "CREATE TABLE "
+                        + NAME + "(week integer, "
+                        + Cols.MONDAY + " boolean, "
+                        + Cols.TUESDAY + " boolean, "
+                        + Cols.WEDNESDAY + " boolean," +
+                        "" + Cols.THURSDAY + " boolean, "
+                        + Cols.FRIDAY + " boolean, "
+                        + Cols.SATURDAY + " boolean, "
+                        + Cols.SUNDAY + " boolean)";
+
+
         public static final class Cols {
             public static final String WEEK = "week";
             public static final String MONDAY = "monday";
