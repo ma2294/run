@@ -19,7 +19,7 @@ public class UserDbHelper extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-    //d
+    //dd
     }
 
     @Override
