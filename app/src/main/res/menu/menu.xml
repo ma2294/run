@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_marginTop="30dp"
+    >
+
+    <item
+        android:id="@+id/action_newStepGoal"
+        android:title="@string/menu_daily_steps"
+        app:showAsAction="never">
+    </item>
+
+    <item
+        android:id="@+id/action_weeklyStepGoal"
+        android:title="@string/menu_weekly_step_goal"
+        app:showAsAction="never">
+    </item>
+
+    <item
+        android:id="@+id/action_newCalorieGoal"
+        android:title="@string/menu_calorie_goal"
+        app:showAsAction="never">
+    </item>
+</menu>

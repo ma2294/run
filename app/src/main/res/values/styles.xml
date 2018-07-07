@@ -1,0 +1,25 @@
+<resources>
+
+    <!-- Base application theme.   <item name="colorPrimary">@android:color/transparent</item>
+        <item name="windowActionBarOverlay">true</item>-->
+    <style name="AppTheme" parent="Theme.AppCompat.NoActionBar">
+        <!-- Customize your theme here. -->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+        <item name="android:textColorPrimary">@color/white</item>
+        <item name="android:gravity">center</item>
+
+    </style>
+
+    <style name="PopupStyle" parent="Theme.AppCompat.NoActionBar">
+        <!-- Customize your theme here. -->
+        <item name="android:background">@color/runBlue</item>
+        <item name="overlapAnchor">false</item>
+        <item name="android:dropDownVerticalOffset">-4dp</item>
+
+    </style>
+
+
+
+</resources>

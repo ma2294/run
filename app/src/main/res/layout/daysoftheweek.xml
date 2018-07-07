@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layout_alignParentBottom="true"
+
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+
+<RelativeLayout
+    android:layout_width="350dp"
+    android:layout_height="50dp"
+    android:layout_marginTop="300dp"
+    android:background="@drawable/rectangle_daysoftheweek"
+    >
+    <Button
+        android:id="@+id/btnMonday"
+        android:layout_width="35dp"
+        android:layout_height="35dp"
+        android:background="@drawable/circle_days_of_the_week"
+        android:text="Mon"
+        android:textSize="10sp"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginBottom="55dp"
+        android:layout_marginEnd="287dp"
+ />
+
+    <Button
+        android:id="@+id/btnTuesday"
+        android:layout_width="35dp"
+        android:layout_height="35dp"
+        android:background="@drawable/circle_days_of_the_week"
+        android:text="Tue"
+        android:textSize="10sp"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginBottom="55dp"
+        android:layout_marginEnd="242dp"
+   />
+
+    <Button
+        android:id="@+id/btnWednesday"
+        android:layout_width="35dp"
+        android:layout_height="35dp"
+        android:background="@drawable/circle_days_of_the_week"
+        android:text="Wed"
+        android:textSize="10sp"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginBottom="55dp"
+        android:layout_marginEnd="197dp"
+    />
+
+    <Button
+        android:id="@+id/btnThursday"
+        android:layout_width="35dp"
+        android:layout_height="35dp"
+        android:background="@drawable/circle_days_of_the_week"
+        android:text="Thu"
+        android:textSize="10sp"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginBottom="55dp"
+        android:layout_marginEnd="152dp"
+        />
+//35(size) + 10(gap) + value of prev = new marginEnd
+    <Button
+        android:id="@+id/btnFriday"
+        android:layout_width="35dp"
+        android:layout_height="35dp"
+        android:background="@drawable/circle_days_of_the_week"
+        android:text="Fri"
+        android:textSize="10sp"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginBottom="55dp"
+        android:layout_marginEnd="107dp"/>
+
+    <Button
+        android:id="@+id/btnSaturday"
+        android:layout_width="35dp"
+        android:layout_height="35dp"
+        android:background="@drawable/circle_days_of_the_week"
+        android:text="Sat"
+        android:textSize="10sp"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginBottom="55dp"
+        android:layout_marginEnd="62dp"
+ />
+
+    <Button
+        android:id="@+id/btnSunday"
+        android:layout_width="35dp"
+        android:layout_height="35dp"
+        android:background="@drawable/circle_days_of_the_week"
+        android:text="Sun"
+        android:textSize="10sp"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginBottom="55dp"
+        android:layout_marginEnd="17dp" />
+
+    <Button
+        android:id="@+id/btnInvisible"
+        android:layout_width="1dp"
+        android:layout_height="35dp"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginBottom="100dp"
+        android:layout_marginEnd="-50dp"
+        android:background="@drawable/circle_days_of_the_week"
+        android:text=""
+        android:textSize="10sp" />
+</RelativeLayout>
+</RelativeLayout>
