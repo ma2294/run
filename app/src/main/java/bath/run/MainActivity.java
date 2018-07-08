@@ -1,5 +1,8 @@
 package bath.run;
 
+import android.app.job.JobInfo;
+import android.app.job.JobScheduler;
+import android.content.ComponentName;
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.AsyncTask;
@@ -22,12 +25,18 @@ import android.widget.Toast;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.Scopes;
 import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.PendingResult;
+import com.google.android.gms.common.api.Result;
+import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.api.Scope;
+import com.google.android.gms.common.api.Status;
 import com.google.android.gms.fitness.Fitness;
+import com.google.android.gms.fitness.FitnessStatusCodes;
 import com.google.android.gms.fitness.data.DataPoint;
 import com.google.android.gms.fitness.data.DataSet;
 import com.google.android.gms.fitness.data.DataType;
 import com.google.android.gms.fitness.data.Field;
+import com.google.android.gms.fitness.request.DataReadRequest;
 import com.google.android.gms.fitness.result.DailyTotalResult;
 
 import java.text.DateFormat;
@@ -38,6 +47,8 @@ import java.util.concurrent.TimeUnit;
 import bath.run.database.DatabaseHelper;
 import bath.run.database.User;
 
+import static com.google.android.gms.fitness.data.Field.FIELD_STEPS;
+
 
 //add  View.OnClickListener to implements list if using onClick switch in the future
 public class MainActivity extends AppCompatActivity implements
@@ -45,21 +56,21 @@ public class MainActivity extends AppCompatActivity implements
         GoogleApiClient.OnConnectionFailedListener {
 
     private static final String TAG = "l";
-    final Handler handler = new Handler();
     public static int dailySteps = 0;
     public static int weeklySteps = 0;
-    private FormStatePagerAdapter mFormStatePagerAdapter;
-    private ViewPager mViewPager;
+    public static int timer = 30000;
+    public static boolean hasUpdated = false;
+    final Handler handler = new Handler();
+    public int t;
     Toolbar toolbar;
-    public static int timer = 3000;
     GoalCompletion goalCompletion = new GoalCompletion();
     DayOfTheWeek dotw = new DayOfTheWeek();
-    private TextView tvWeekSteps;
-    public static boolean hasUpdated = false;
-    public int t;
-
     DatabaseHelper db = new DatabaseHelper(this);
-
+    List<User> mUsers = new ArrayList<User>();
+    private FormStatePagerAdapter mFormStatePagerAdapter;
+    private ViewPager mViewPager;
+    private TextView tvWeekSteps;
+    private float scaledStepCount = 0;
     private ImageView imgMon;
     private ImageView imgTue;
     private ImageView imgWed;
@@ -67,20 +78,20 @@ public class MainActivity extends AppCompatActivity implements
     private ImageView imgFri;
     private ImageView imgSat;
     private ImageView imgSun;
-    private GoogleApiClient mGoogleApiClient;
-
-    List<User> mUsers = new ArrayList<User>();
+    public static GoogleApiClient mGoogleApiClient;
+    static final int JOB_ID = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        //   db = new DatabaseHelper(this);
+        Log.i(TAG, "onCreate: ");
 
         initViews();
 
         mGoogleApiClient = new GoogleApiClient.Builder(this)
                 .addApi(Fitness.HISTORY_API)
+                .addApi(Fitness.RECORDING_API)
                 .addScope(new Scope(Scopes.FITNESS_ACTIVITY_READ_WRITE))
                 .addConnectionCallbacks(this)
                 .enableAutoManage(this, 0, this)
@@ -88,28 +99,21 @@ public class MainActivity extends AppCompatActivity implements
 
 
         mFormStatePagerAdapter = new FormStatePagerAdapter(getSupportFragmentManager());
-
         mViewPager = (ViewPager) findViewById(R.id.container);
         setupViewPager(mViewPager);
-
-
         toolbar = (Toolbar) findViewById(R.id.app_bar);
-
         setSupportActionBar(toolbar);
-
         BottomNavigationView bottomNavigationView = (BottomNavigationView) findViewById(R.id.bottomNavigationView);
         BottomNavigationViewHelper.removeShiftMode(bottomNavigationView);
-
-        System.out.println("occdfsff");
-        // db.reset();
         runDb();
         workUserList();
-
     }
+
 
     @Override
     protected void onStart() {
         super.onStart();
+        Log.i(TAG, "onStart: ");
     }
 
     private void initViews() {
@@ -122,17 +126,61 @@ public class MainActivity extends AppCompatActivity implements
         imgSun = (ImageView) findViewById(R.id.imgSun);
     }
 
-    public void update() {
-        startUpdating();
-    }
-
 
     public void onConnected(@Nullable Bundle bundle) {
         Log.e("HistoryAPI", "onConnected");
-
+        timer = 5000;
+        if (!isJobServiceOn(this)) {
+            Log.i(TAG, "onConnected: ok");
+            scheduleJob();
+        } else {
+            Log.i(TAG, "onConnected: Job already scheduled, updating ui");
+            setSteps();
+        }
         setDayTextView();
     }
 
+    public static boolean isJobServiceOn( Context context ) {
+        JobScheduler scheduler = (JobScheduler) context.getSystemService( Context.JOB_SCHEDULER_SERVICE ) ;
+
+        boolean hasBeenScheduled = false ;
+
+        for ( JobInfo jobInfo : scheduler.getAllPendingJobs() ) {
+            if ( jobInfo.getId() == JOB_ID ) {
+                hasBeenScheduled = true ;
+                break ;
+            }
+        }
+
+        return hasBeenScheduled ;
+    }
+
+    public void scheduleJob() {
+        ComponentName componentName = new ComponentName(this, ExampleJobService.class);
+        JobInfo info = new JobInfo.Builder(JOB_ID, componentName)
+                .setRequiredNetworkType(JobInfo.NETWORK_TYPE_UNMETERED)
+                .setPersisted(true)
+                .setPeriodic(15 * 60 * 1000)
+                .build();
+
+        JobScheduler scheduler = (JobScheduler)
+                getSystemService(JOB_SCHEDULER_SERVICE);
+
+        int resultCode = scheduler.schedule(info);
+
+        if (resultCode == JobScheduler.RESULT_SUCCESS){
+            Log.i(TAG, "scheduleJob: Job Scheduled");
+        } else {
+            Log.i(TAG, "scheduleJob: Job scheduling failed");
+        }
+    }
+
+    public void cancelJob() {
+        JobScheduler scheduler = (JobScheduler)
+                getSystemService(JOB_SCHEDULER_SERVICE);
+        scheduler.cancel(JOB_ID);
+        Log.i(TAG, "cancelJob: Job Cancelled");
+    }
     //this creates database if one does not already exist.
     public void runDb() {
         SQLiteDatabase collectionDB = db.getWritableDatabase();
@@ -211,69 +259,6 @@ public class MainActivity extends AppCompatActivity implements
     }
 
 
-    //In use, call this every 30 seconds in active mode, 60 in ambient on watch faces
-    //TODO implement a callback
-    private void displayStepDataForToday() {
-        DailyTotalResult result = Fitness.HistoryApi.readDailyTotal(mGoogleApiClient, DataType.TYPE_STEP_COUNT_DELTA).await(3, TimeUnit.SECONDS);
-        showDataSet(result.getTotal(), 1);
-        //  System.out.println(result);
-
-    }
-
-
-    private void showDataSet(DataSet dataSet, int days) {
-
-        //  Log.e("History", "Data returned for Data type: " + dataSet.getDataType().getName());
-        DateFormat dateFormat = DateFormat.getDateInstance();
-        DateFormat timeFormat = DateFormat.getTimeInstance();
-
-        for (DataPoint dp : dataSet.getDataPoints()) {
-
-            for (Field field : dp.getDataType().getFields()) {
-                Log.i(TAG, "\tField: " + field.getName() + " Value: " + dp.getValue(field));
-                if (days == 1) {
-                    dailySteps = dp.getValue(field).asInt();
-                }
-            }
-        }
-    }
-
-    private void checkWeeklyIcons() {
-        int d;
-        d = dotw.getDay();
-
-        if (dailySteps >= GoalCompletion.getDailyStepsGoal()) {
-            //hit limit for the day. lets update ui
-            //for each day update
-            System.out.println("1");
-            for (int i = 1; i <= dotw.DAYS_IN_WEEK; i++) {
-                System.out.println("2");
-                if (d == i) {
-                    System.out.println("3");
-                    db.updateRow(d);
-                    System.out.println("Updating row");
-                }
-            }
-        } else {
-            System.out.println("Daily steps not reached");
-        }
-    }
-
-
-    public void startUpdating() {
-        handler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                new ViewTodaysStepCountTask().execute();
-                if (!hasUpdated && dailySteps >= goalCompletion.getDailyStepsGoal()) {
-                    checkWeeklyIcons();
-                    System.out.println("sjdhfjdsjh");
-                }
-                handler.postDelayed(this, timer);
-            }
-        }, 0); //the time is in miliseconds*/
-    }
-
     public void setDayTextView() {
         if (User.isMonday()) {
             imgMon.setImageResource(R.drawable.tickicon);
@@ -312,10 +297,16 @@ public class MainActivity extends AppCompatActivity implements
         }
     }
 
-    public class ViewTodaysStepCountTask extends AsyncTask<Void, Void, Void> {
-        protected Void doInBackground(Void... params) {
-            displayStepDataForToday();
-            return null;
+    private void showDataSet(DataSet dataSet, int days) {
+
+        for (DataPoint dp : dataSet.getDataPoints()) {
+
+            for (Field field : dp.getDataType().getFields()) {
+                Log.i(TAG, "\tField: " + field.getName() + " Value: " + dp.getValue(field));
+                if (days == 1) {
+                    dailySteps = dp.getValue(field).asInt();
+                }
+            }
         }
     }
 
@@ -325,8 +316,9 @@ public class MainActivity extends AppCompatActivity implements
         Log.e("Main Activity", "onPause");
         //when user pauses app, check if daily goal is reached.
         goalCompletion.goalReached(db);
-    }
 
+
+    }
 
     @Override
     public void onConnectionSuspended(int i) {
@@ -339,5 +331,32 @@ public class MainActivity extends AppCompatActivity implements
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
         Log.e("HistoryAPI", "onConnectionFailed");
     }
-}
+
+    public static void setSteps() {
+
+            if (mGoogleApiClient.isConnected()) {
+                Fitness.HistoryApi.readDailyTotal(mGoogleApiClient, DataType.TYPE_STEP_COUNT_DELTA)
+                        .setResultCallback(new ResultCallback<DailyTotalResult>() {
+                            @Override
+                            public void onResult(@NonNull DailyTotalResult totalResult) {
+                                if (totalResult.getStatus().isSuccess()) {
+                                    DataSet totalSet = totalResult.getTotal();
+                                    long total = (totalSet == null) || totalSet.isEmpty()
+                                            ? 0
+                                            : totalSet.getDataPoints().get(0).getValue(Field.FIELD_STEPS).asInt();
+
+                                    dailySteps = ((int) total);
+                                    System.out.println("set daily steps "+dailySteps);
+                                    // Update your UI here
+                                } else {
+                                    // Handle failure
+                                }
+                            }
+                        });
+            } else if (!mGoogleApiClient.isConnecting()) {
+                mGoogleApiClient.connect();
+            }
+        }
+    }
+
 

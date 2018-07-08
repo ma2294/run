@@ -49,35 +49,48 @@ public class Fragment1 extends Fragment {
         tvMotivationalMessage.setText(mm.getMotivationalMessage());
         total = GoalCompletion.workOutRemainingPercentage(MainActivity.dailySteps, GoalCompletion.getDailyStepsGoal());
 
-        update();
         //set listener to start btn
         Log.d(TAG, "onCreateView: started..");
+
+        startUpdatingUi();
+
 
         return view;
     }
 
 
-
-    public void update() {
-
-        handler.postDelayed(new Runnable() {
+     public  Runnable uiUpdater = new Runnable() {
             @Override
             public void run() {
-                if(MainActivity.dailySteps == 0)
-                    return;
-
+               // System.out.println("running runnable");
                 tvDailySteps.setText(String.valueOf(MainActivity.dailySteps));
                 total = GoalCompletion.workOutRemainingPercentage(MainActivity.dailySteps, GoalCompletion.getDailyStepsGoal());
                 progress = ((int) total);
                 tvDailyStepsPercentage.setText(String.valueOf(progress)+"%");
                 progressBarDailySteps.setProgress(progress);
 
-                handler.postDelayed(this, MainActivity.timer);
-
-
+                handler.postDelayed(uiUpdater, 5000);
             }
-        }, 1000);  //the time is in miliseconds
+        };
 
+    public void startUpdatingUi(){
+        uiUpdater.run();
     }
 
+    public void stopUpdatingUi(){
+        handler.removeCallbacks(uiUpdater);
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        System.out.println("pause");
+        stopUpdatingUi();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        startUpdatingUi();
+    }
 }
