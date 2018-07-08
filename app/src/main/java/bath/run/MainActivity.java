@@ -1,5 +1,7 @@
 package bath.run;
 
+import android.content.Context;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
@@ -13,43 +15,29 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.view.View;
-import android.widget.Button;
 import android.widget.ImageView;
-import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.Scopes;
 import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.common.api.PendingResult;
-import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.api.Scope;
-import com.google.android.gms.common.api.Status;
 import com.google.android.gms.fitness.Fitness;
-import com.google.android.gms.fitness.HistoryApi;
-import com.google.android.gms.fitness.HistoryClient;
-import com.google.android.gms.fitness.data.Bucket;
 import com.google.android.gms.fitness.data.DataPoint;
 import com.google.android.gms.fitness.data.DataSet;
-import com.google.android.gms.fitness.data.DataSource;
 import com.google.android.gms.fitness.data.DataType;
 import com.google.android.gms.fitness.data.Field;
-import com.google.android.gms.fitness.request.DataDeleteRequest;
-import com.google.android.gms.fitness.request.DataReadRequest;
-import com.google.android.gms.fitness.request.DataUpdateRequest;
 import com.google.android.gms.fitness.result.DailyTotalResult;
-import com.google.android.gms.fitness.result.DataReadResult;
-
-import org.w3c.dom.Text;
 
 import java.text.DateFormat;
-import java.util.Calendar;
-import java.util.Date;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.concurrent.TimeUnit;
+
+import bath.run.database.DatabaseHelper;
+import bath.run.database.User;
+
 
 //add  View.OnClickListener to implements list if using onClick switch in the future
 public class MainActivity extends AppCompatActivity implements
@@ -70,6 +58,8 @@ public class MainActivity extends AppCompatActivity implements
     public static boolean hasUpdated = false;
     public int t;
 
+    DatabaseHelper db = new DatabaseHelper(this);
+
     private ImageView imgMon;
     private ImageView imgTue;
     private ImageView imgWed;
@@ -78,30 +68,21 @@ public class MainActivity extends AppCompatActivity implements
     private ImageView imgSat;
     private ImageView imgSun;
     private GoogleApiClient mGoogleApiClient;
-    DatabaseHelper db;
+
+    List<User> mUsers = new ArrayList<User>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        db = new DatabaseHelper(this);
+        //   db = new DatabaseHelper(this);
 
         initViews();
 
         mGoogleApiClient = new GoogleApiClient.Builder(this)
                 .addApi(Fitness.HISTORY_API)
                 .addScope(new Scope(Scopes.FITNESS_ACTIVITY_READ_WRITE))
-                .addConnectionCallbacks(new GoogleApiClient.ConnectionCallbacks() {
-                    @Override
-                    public void onConnected(@Nullable Bundle bundle) {
-
-                    }
-
-                    @Override
-                    public void onConnectionSuspended(int i) {
-
-                    }
-                })
+                .addConnectionCallbacks(this)
                 .enableAutoManage(this, 0, this)
                 .build();
 
@@ -119,18 +100,19 @@ public class MainActivity extends AppCompatActivity implements
         BottomNavigationView bottomNavigationView = (BottomNavigationView) findViewById(R.id.bottomNavigationView);
         BottomNavigationViewHelper.removeShiftMode(bottomNavigationView);
 
-         db.reset();
+        System.out.println("occdfsff");
+        // db.reset();
+        runDb();
+        workUserList();
+
     }
 
     @Override
     protected void onStart() {
         super.onStart();
-        checkWeeklyIcons();
-        //check insert *
-        //check if db is made if not make it update * from user where week='dotw.getweek' and day =
     }
-    private void initViews() {
 
+    private void initViews() {
         imgMon = (ImageView) findViewById(R.id.imgMon);
         imgTue = (ImageView) findViewById(R.id.imgTue);
         imgWed = (ImageView) findViewById(R.id.imgWed);
@@ -138,21 +120,40 @@ public class MainActivity extends AppCompatActivity implements
         imgFri = (ImageView) findViewById(R.id.imgFri);
         imgSat = (ImageView) findViewById(R.id.imgSat);
         imgSun = (ImageView) findViewById(R.id.imgSun);
-        //set on click listener
     }
 
     public void update() {
-        // add stop();
         startUpdating();
     }
 
 
     public void onConnected(@Nullable Bundle bundle) {
         Log.e("HistoryAPI", "onConnected");
-        //timer = 30000;
-        startUpdating();
-        //db.checkStatus();
-        checkWeeklyIcons();
+
+        setDayTextView();
+    }
+
+    //this creates database if one does not already exist.
+    public void runDb() {
+        SQLiteDatabase collectionDB = db.getWritableDatabase();
+        //db.insert(collectionDB); //use this this insert values in a new method tmrw
+    }
+
+    public void workUserList() {
+        List<User> userList = db.getUsers();
+        setUsers(userList);
+
+        System.out.println("week = " + User.getWeek());
+
+        for (int i = 0; i < userList.size(); i++) {
+            System.out.println("List " + userList.get(i));
+        }
+    }
+
+
+    public void setUsers(List<User> users) {
+        mUsers = users;
+        System.out.println(mUsers.toString());
     }
 
     @Override
@@ -232,8 +233,6 @@ public class MainActivity extends AppCompatActivity implements
                 Log.i(TAG, "\tField: " + field.getName() + " Value: " + dp.getValue(field));
                 if (days == 1) {
                     dailySteps = dp.getValue(field).asInt();
-                } else if (days == 7) {
-                    weeklySteps = dp.getValue(field).asInt();
                 }
             }
         }
@@ -252,8 +251,6 @@ public class MainActivity extends AppCompatActivity implements
                 if (d == i) {
                     System.out.println("3");
                     db.updateRow(d);
-                    setDayTextView(d);
-
                     System.out.println("Updating row");
                 }
             }
@@ -277,40 +274,43 @@ public class MainActivity extends AppCompatActivity implements
         }, 0); //the time is in miliseconds*/
     }
 
-    public void setDayTextView(int d) {
-        // I need to make this instead of a switch statement to
-        // get mondaysteps / tuesdaysteps ... sundaysteps from db
-        // and if String = "No" then use R.drawable.crossicon
-        // and if String = "Yes" then use R.drawable.tickicon
-        switch (d) {
-            case 1:
-                imgMon.setImageResource(R.drawable.tickicon);
-                break;
-            case 2:
-                imgTue.setImageResource(R.drawable.tickicon);
-                break;
-            case 3:
-                imgWed.setImageResource(R.drawable.tickicon);
-                break;
-            case 4:
-                imgThu.setImageResource(R.drawable.tickicon);
-                break;
-            case 5:
-                imgFri.setImageResource(R.drawable.tickicon);
-                break;
-            case 6:
-                imgSat.setImageResource(R.drawable.tickicon);
-                break;
-            case 7:
-                imgSun.setImageResource(R.drawable.tickicon);
-                break;
-            default:
-                //
-                break;
+    public void setDayTextView() {
+        if (User.isMonday()) {
+            imgMon.setImageResource(R.drawable.tickicon);
+        } else {
+            imgMon.setImageResource(R.drawable.crossicon);
         }
-        hasUpdated = true;
+        if (User.isTuesday()) {
+            imgTue.setImageResource(R.drawable.tickicon);
+        } else {
+            imgTue.setImageResource(R.drawable.crossicon);
+        }
+        if (User.isWednesday()) {
+            imgWed.setImageResource(R.drawable.tickicon);
+        } else {
+            imgWed.setImageResource(R.drawable.crossicon);
+        }
+        if (User.isThursday()) {
+            imgThu.setImageResource(R.drawable.tickicon);
+        } else {
+            imgThu.setImageResource(R.drawable.crossicon);
+        }
+        if (User.isFriday()) {
+            imgFri.setImageResource(R.drawable.tickicon);
+        } else {
+            imgFri.setImageResource(R.drawable.crossicon);
+        }
+        if (User.isSaturday()) {
+            imgSat.setImageResource(R.drawable.tickicon);
+        } else {
+            imgSat.setImageResource(R.drawable.crossicon);
+        }
+        if (User.isSunday()) {
+            imgSun.setImageResource(R.drawable.tickicon);
+        } else {
+            imgSun.setImageResource(R.drawable.crossicon);
+        }
     }
-
 
     public class ViewTodaysStepCountTask extends AsyncTask<Void, Void, Void> {
         protected Void doInBackground(Void... params) {
@@ -322,9 +322,9 @@ public class MainActivity extends AppCompatActivity implements
     @Override
     protected void onPause() {
         super.onPause();
-
-        //timer = 300000;
         Log.e("Main Activity", "onPause");
+        //when user pauses app, check if daily goal is reached.
+        goalCompletion.goalReached(db);
     }
 
 
